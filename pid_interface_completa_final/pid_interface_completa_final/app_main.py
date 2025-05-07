@@ -10,16 +10,23 @@ from aba_historico import AbaHistorico
 import numpy as np
 
 def carregar_dados():
-    from scipy.io import loadmat, whosmat
     data = loadmat("Dataset_Grupo7.mat")
-    data = data.get(whosmat("Dataset_Grupo7.mat")[0][0])[0][0]
-    tempo, entrada, saida, label, unidade = data
+    key = whosmat("Dataset_Grupo7.mat")[0][0]
+    estrutura = data[key][0, 0]
 
-    # Corrigir o tipo para strings simples (sem colchetes ou array)
-    label = str(label[0][0]) if isinstance(label, np.ndarray) else str(label)
-    unidade = str(unidade[0][0]) if isinstance(unidade, np.ndarray) else str(unidade)
+    tempo = estrutura["sampleTime"][0]
+    entrada = estrutura["dataInput"][0]
+    saida = estrutura["dataOutput"][0]
 
-    return tempo[0].astype(float), entrada[0], saida[0], label, unidade
+    # Eixo Y (Temperatura)
+    label_y = estrutura["physicalQuantity"][0, 1][0]
+    unidade_y = estrutura["units"][0, 1][0]
+
+    # Eixo X (Tempo)
+    label_x = estrutura["physicalQuantity"][0, 0][0]
+    unidade_x = estrutura["units"][0, 0][0]
+
+    return tempo.astype(float), entrada, saida, label_y, unidade_y, label_x, unidade_x
 
 class AppPID(tk.Tk):
     def __init__(self):
@@ -27,7 +34,9 @@ class AppPID(tk.Tk):
         self.title("Interface PID Completa")
         self.geometry("1024x700")
 
-        tempo, entrada, saida, label, unidade = carregar_dados()
+        # Agora recebendo todos os labels e unidades
+        tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x = carregar_dados()
+
         self.amplitude = entrada.mean()
         self.k = (saida[-1] - saida[0]) / self.amplitude
         y1 = saida[0] + 0.283 * (saida[-1] - saida[0])
@@ -43,10 +52,10 @@ class AppPID(tk.Tk):
         abas.pack(fill="both", expand=True)
 
         abas.add(AbaHome(abas, abas), text="Início")
-        abas.add(AbaIdentificacao(abas, tempo, entrada, saida, label, unidade), text="Identificação")
-        abas.add(AbaPID(abas, self.k, self.tau, self.theta, tempo, entrada, saida, self.historico_simulacoes, label, unidade), text="Controle PID")
-        abas.add(AbaEQM(abas, tempo, entrada, saida, self.k, label, unidade), text="EQM - Modelos")
-        abas.add(AbaSmith(abas, self.k, self.tau, self.theta, tempo, entrada, saida, label, unidade), text="Gráficos Smith")
+        abas.add(AbaIdentificacao(abas, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x), text="Identificação")
+        abas.add(AbaPID(abas, self.k, self.tau, self.theta, tempo, entrada, saida, self.historico_simulacoes, label_y, unidade_y, label_x, unidade_x), text="Controle PID")
+        abas.add(AbaEQM(abas, tempo, entrada, saida, self.k, label_y, unidade_y), text="EQM - Modelos")
+        abas.add(AbaSmith(abas, self.k, self.tau, self.theta, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x), text="Gráficos Smith")
         abas.add(AbaHistorico(abas, self.historico_simulacoes), text="Histórico de Simulações")
 
 if __name__ == "__main__":

@@ -8,12 +8,13 @@ from tkinter import simpledialog
 from utils_pid import simular_pid
 
 class AbaPID(tk.Frame):
-    def __init__(self, master, k, tau, theta, tempo, entrada, saida, historico, label, unidade):
+    def __init__(self, master, k, tau, theta, tempo, entrada, saida, historico, label_y, unidade_y, label_x, unidade_x):
         super().__init__(master)
         self.historico = historico
-        self.label = label
-        self.unidade = unidade
-        ...
+        self.label_y = label_y
+        self.unidade_y = unidade_y
+        self.label_x = label_x
+        self.unidade_x = unidade_x
 
         self.configure(bg="white")
 
@@ -23,6 +24,7 @@ class AbaPID(tk.Frame):
         self.tempo = tempo
         self.entrada = entrada
         self.saida = saida
+
 
         self.metodo_var = tk.StringVar(value="Cohen-Coon")
         self.pade_var = tk.StringVar(value="1")
@@ -177,8 +179,9 @@ class AbaPID(tk.Frame):
         self.ax.axvline(ts, color="green", linestyle="--", label=f"T acomodação: {ts:.2f}s")
 
         self.ax.set_title("Resposta do Sistema com PID")
-        self.ax.set_xlabel("Tempo (s)")
-        self.ax.set_ylabel(f"{self.label} ({self.unidade})")
+        self.ax.set_xlabel(f"{self.label_x} ({self.unidade_x})")
+        self.ax.set_ylabel(f"{self.label_y} ({self.unidade_y})")
+
         self.ax.grid()
         self.ax.legend()
         self.canvas.draw()
@@ -207,8 +210,45 @@ class AbaPID(tk.Frame):
 
     def salvar_simulacao(self):
         if hasattr(self, 'ultima_simulacao'):
-            self.historico.append(self.ultima_simulacao)
-            messagebox.showinfo("Salvo", "Simulação salva no histórico com sucesso!")
+            nome = simpledialog.askstring("Salvar Simulação", "Digite um nome para esta simulação:")
+            if not nome:
+                return
+
+            sim = self.ultima_simulacao  # para facilitar
+
+            def plotar(ax):
+                ax.clear()  # <- garante que o gráfico anterior não atrapalhe
+                ax.plot(sim["tempo"], sim["saida"], label="Resposta PID", color="black")
+                ax.axhline(sim["setpoint"], color="red", linestyle="--", label="Setpoint")
+
+                info = sim["info"]
+                tp = info.get("PeakTime", 0)
+                mp = info.get("Overshoot", 0)
+                ts = info.get("SettlingTime", 0)
+                tr = info.get("RiseTime", 0)
+                ymax = max(sim["saida"])
+
+                ax.annotate(f"Pico: {ymax:.2f}\nOvershoot: {mp:.1f}%",
+                            xy=(tp, ymax),
+                            xytext=(tp + 10, ymax - 10),
+                            fontsize=10,
+                            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="purple", lw=1.5))
+
+                ax.axvline(tr, color="blue", linestyle="--", label=f"T subida: {tr:.2f}s")
+                ax.axvline(ts, color="green", linestyle="--", label=f"T acomod.: {ts:.2f}s")
+
+                ax.set_title(f"Simulação: {nome}")
+                ax.set_xlabel(f"{self.label_x} ({self.unidade_x})")
+                ax.set_ylabel(f"{self.label_y} ({self.unidade_y})")
+                ax.grid(True)
+                ax.legend()
+
+            self.historico.append({
+                "nome": nome,
+                "fig": plotar,
+                "dados": sim
+            })
+
+            messagebox.showinfo("Salvo", f"Simulação '{nome}' salva com sucesso!")
         else:
             messagebox.showwarning("Aviso", "Nenhuma simulação realizada para salvar.")
-

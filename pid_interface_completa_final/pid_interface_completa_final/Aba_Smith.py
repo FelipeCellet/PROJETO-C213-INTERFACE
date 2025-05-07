@@ -6,7 +6,7 @@ import numpy as np
 import control as ctrl
 
 class AbaSmith(tk.Frame):
-    def __init__(self, master, k, tau, theta, tempo, entrada, saida, label, unidade):
+    def __init__(self, master, k, tau, theta, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x):
         super().__init__(master)
         self.k = k
         self.tau = tau
@@ -14,8 +14,10 @@ class AbaSmith(tk.Frame):
         self.tempo = tempo
         self.entrada = entrada
         self.saida = saida
-        self.label = label
-        self.unidade = unidade
+        self.label_y = label_y
+        self.unidade_y = unidade_y
+        self.label_x = label_x
+        self.unidade_x = unidade_x
 
         self.malha_var = tk.StringVar(value="Malha Fechada")
         self.pade_var = tk.StringVar(value="1")
@@ -79,8 +81,9 @@ class AbaSmith(tk.Frame):
             self.ax.plot(t_sim, y_modelo, 'red', label=f"Modelo Identificado ({tipo_malha})")
 
             self.ax.set_title(f"Identificação via Método de Smith (Grupo 7 - {tipo_malha})")
-            self.ax.set_xlabel("Tempo (s)")
-            self.ax.set_ylabel(f"{self.label} ({self.unidade})")  # Dinâmico aqui
+            self.ax.set_xlabel(f"{self.label_x} ({self.unidade_x})")
+            self.ax.set_ylabel(f"{self.label_y} ({self.unidade_y})")
+
             self.ax.grid(True)
             self.ax.legend(loc="lower right")
 

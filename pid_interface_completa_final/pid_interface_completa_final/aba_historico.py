@@ -1,3 +1,4 @@
+from matplotlib.backends.backend_pdf import PdfPages
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -6,57 +7,67 @@ import matplotlib.pyplot as plt
 class AbaHistorico(tk.Frame):
     def __init__(self, master, historico):
         super().__init__(master)
-        self.historico = historico  # Lista de dicionários com {'nome', 'fig', 'dados'}
-        
-        self.lista_simulacoes = tk.Listbox(self, font=("Arial", 11))
-        self.lista_simulacoes.grid(row=0, column=0, sticky="ns", padx=10, pady=10)
-        self.lista_simulacoes.bind("<<ListboxSelect>>", self.exibir_simulacao)
+        self.historico = historico  
 
+        # Frame com checkboxes
+        self.frame_checkboxes = tk.Frame(self)
+        self.frame_checkboxes.grid(row=0, column=0, sticky="ns", padx=10, pady=10)
+        self.check_vars = []
+
+        # Área do gráfico
         self.fig, self.ax = plt.subplots(figsize=(6, 4))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.get_tk_widget().grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
+        # Botões
         botoes = tk.Frame(self)
         botoes.grid(row=1, column=1, sticky="e", padx=10, pady=10)
 
-        ttk.Button(botoes, text="Exportar PNG", command=self.exportar_png).grid(row=0, column=0, padx=5)
+        ttk.Button(botoes, text="Exibir Selecionado", command=self.exibir_primeira_selecao).grid(row=0, column=0, padx=5)
         ttk.Button(botoes, text="Exportar PDF", command=self.exportar_pdf).grid(row=0, column=1, padx=5)
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.atualizar_lista()
+        self.bind("<Visibility>", lambda e: self.atualizar_lista())
 
     def atualizar_lista(self):
-        self.lista_simulacoes.delete(0, tk.END)
-        for item in self.historico:
-            self.lista_simulacoes.insert(tk.END, item["nome"])
+        for widget in self.frame_checkboxes.winfo_children():
+            widget.destroy()
+        self.check_vars.clear()
 
-    def exibir_simulacao(self, event):
-        idx = self.lista_simulacoes.curselection()
-        if not idx:
-            return
-        sim = self.historico[idx[0]]
-        self.ax.clear()
-        sim["fig"](self.ax)  # função que redesenha o gráfico
-        self.canvas.draw()
+        for i, sim in enumerate(self.historico):
+            var = tk.IntVar()
+            chk = tk.Checkbutton(self.frame_checkboxes, text=sim["nome"], variable=var, font=("Arial", 10))
+            chk.pack(anchor="w")
+            self.check_vars.append((var, i))
 
-    def exportar_png(self):
-        self._exportar("png")
+    def exibir_primeira_selecao(self):
+        for var, i in self.check_vars:
+            if var.get():
+                sim = self.historico[i]
+                self.ax.clear()
+                sim["fig"](self.ax)
+                self.canvas.draw()
+                break
 
     def exportar_pdf(self):
-        self._exportar("pdf")
-
-    def _exportar(self, tipo):
-        idx = self.lista_simulacoes.curselection()
-        if not idx:
-            messagebox.showwarning("Exportação", "Selecione uma simulação.")
+        selecionados = [i for var, i in self.check_vars if var.get()]
+        if not selecionados:
+            messagebox.showwarning("Exportação", "Nenhuma simulação selecionada.")
             return
-        sim = self.historico[idx[0]]
-        caminho = filedialog.asksaveasfilename(defaultextension=f".{tipo}", filetypes=[(f"{tipo.upper()} Files", f"*.{tipo}")])
-        if caminho:
-            fig, ax = plt.subplots(figsize=(6, 4))
-            sim["fig"](ax)
-            fig.savefig(caminho)
-            plt.close(fig)
-            messagebox.showinfo("Exportado", f"Gráfico exportado como {tipo.upper()} para:\n{caminho}")
+
+        caminho = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")])
+        if not caminho:
+            return
+
+        with PdfPages(caminho) as pdf:
+            for idx in selecionados:
+                sim = self.historico[idx]
+                fig, ax = plt.subplots(figsize=(6, 4))
+                sim["fig"](ax)
+                fig.suptitle(sim["nome"], fontsize=14)
+                pdf.savefig(fig)
+                plt.close(fig)
+
+        messagebox.showinfo("Exportação Concluída", f"{len(selecionados)} simulação(ões) exportadas para:\n{caminho}")

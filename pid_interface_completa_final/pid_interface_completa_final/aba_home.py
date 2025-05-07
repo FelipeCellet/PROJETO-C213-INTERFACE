@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 class AbaHome(tk.Frame):
     def __init__(self, master, abas):
         super().__init__(master)
+
         tk.Label(self, text="Bem-vindo ao Projeto de C213 - Sistemas Embarcados", font=("Arial", 16)).pack(pady=20)
 
         try:
@@ -18,6 +19,14 @@ class AbaHome(tk.Frame):
         frame_botoes = tk.Frame(self)
         frame_botoes.pack(pady=20)
 
-        tk.Button(frame_botoes, text="Identificação", width=20, command=lambda: abas.select(1)).grid(row=0, column=0, padx=10)
-        tk.Button(frame_botoes, text="Controle PID", width=20, command=lambda: abas.select(2)).grid(row=0, column=1, padx=10)
-        tk.Button(frame_botoes, text="EQM - Modelos", width=20, command=lambda: abas.select(3)).grid(row=0, column=2, padx=10)
+        # Botões empilhados verticalmente
+        botoes = [
+            ("Identificação", 1),
+            ("Controle PID", 2),
+            ("EQM - Modelos", 3),
+            ("Gráficos Smith", 4),
+            ("Histórico de Simulações", 5),
+        ]
+
+        for texto, idx in botoes:
+            tk.Button(frame_botoes, text=texto, width=25, command=lambda i=idx: abas.select(i)).pack(pady=4)

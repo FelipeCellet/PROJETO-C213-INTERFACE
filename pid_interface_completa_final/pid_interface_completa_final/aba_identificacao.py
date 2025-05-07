@@ -16,8 +16,13 @@ class AbaIdentificacao(tk.Frame):
             self.annotation.set_visible(False)
             self.canvas.draw_idle()
 
-    def __init__(self, master, tempo, entrada, saida, label, unidade):
+    def __init__(self, master, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x):
         super().__init__(master)
+
+        self.label_y = label_y
+        self.unidade_y = unidade_y
+        self.label_x = label_x
+        self.unidade_x = unidade_x
 
         # Frame interno para centralizar
         frame_central = tk.Frame(self)
@@ -28,8 +33,8 @@ class AbaIdentificacao(tk.Frame):
         self.ax.plot(tempo, entrada, label="Entrada", linestyle="--", color="blue")
         self.ax.plot(tempo, saida, label="Saída", color="red")
         self.ax.set_title("Identificação do Sistema")
-        self.ax.set_xlabel("Tempo (s)")
-        self.ax.set_ylabel(f"{label} ({unidade})")  # <-- Dinâmico!
+        self.ax.set_xlabel(f"{self.label_x} ({self.unidade_x})")
+        self.ax.set_ylabel(f"{self.label_y} ({self.unidade_y})")
         self.ax.legend()
         self.ax.grid(True)
 
@@ -49,7 +54,7 @@ class AbaIdentificacao(tk.Frame):
         )
         self.label.grid(row=1, column=0, pady=(15, 0))
 
-        # Configurar expansão
+        # Expansão automática
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         frame_central.grid_rowconfigure(0, weight=1)
@@ -63,5 +68,5 @@ class AbaIdentificacao(tk.Frame):
         )
         self.annotation.set_visible(False)
 
-        # Conectar evento de movimento do mouse
+        # Evento de hover
         self.canvas.mpl_connect("motion_notify_event", self._on_hover)
