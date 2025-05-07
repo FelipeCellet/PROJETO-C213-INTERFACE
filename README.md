@@ -71,11 +71,7 @@ Este é um processo com **características de atraso e resposta lenta**, ideal p
 
 ### Instalar dependências
 
-```bash
-pip install numpy scipy matplotlib control
 
-
----
 
 ## Métodos de Identificação
 
@@ -123,7 +119,7 @@ Essa funcionalidade visa ajudar na **comparação entre diferentes configuraçõ
 ## Autores
 
 - **Felipe Siqueira Mohallem Cellet**
-- _[Adicione os demais membros aqui]_
+
 
 **Instituto Nacional de Telecomunicações – INATEL**  
 Disciplina: **C213 – Sistemas Embarcados**  
