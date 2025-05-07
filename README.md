@@ -119,6 +119,7 @@ Essa funcionalidade visa ajudar na **comparação entre diferentes configuraçõ
 ## Autores
 
 - **Felipe Siqueira Mohallem Cellet**
+- **Leonardo Santos Pereira**
 
 
 **Instituto Nacional de Telecomunicações – INATEL**  
