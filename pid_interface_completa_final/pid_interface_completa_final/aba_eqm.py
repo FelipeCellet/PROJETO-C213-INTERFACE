@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -7,12 +6,14 @@ import control as ctrl
 import matplotlib.pyplot as plt
 
 class AbaEQM(tk.Frame):
-    def __init__(self, master, tempo, entrada, saida, k):
+    def __init__(self, master, tempo, entrada, saida, k, label, unidade):
         super().__init__(master)
         self.tempo = tempo
         self.entrada = entrada
         self.saida = saida
         self.k = k
+        self.label = label
+        self.unidade = unidade
         self.amplitude = np.mean(entrada)
         self.metodo_var = tk.StringVar(value="Smith")
 
@@ -55,7 +56,7 @@ class AbaEQM(tk.Frame):
             y2 = y0 + 0.853 * (y_final - y0)
             t1 = t[np.argmax(y_real >= y1)]
             t2 = t[np.argmax(y_real >= y2)]
-            tau =  0.67 * (t2 - t1)
+            tau = 0.67 * (t2 - t1)
             theta = 1.3 * t1 - 0.29 * t2
 
         G = ctrl.tf([self.k], [tau, 1])
@@ -71,7 +72,7 @@ class AbaEQM(tk.Frame):
         self.ax_eqm.plot(t_sim, y_sim, 'b--', label='Modelo')
         self.ax_eqm.set_title(f'Modelo {self.metodo_var.get()} - EQM: {eqm:.4f}')
         self.ax_eqm.set_xlabel("Tempo (s)")
-        self.ax_eqm.set_ylabel("Temperatura (°C)")
+        self.ax_eqm.set_ylabel(f"{self.label} ({self.unidade})")  # <-- Dinâmico
         self.ax_eqm.grid(True)
         self.ax_eqm.legend()
         self.canvas_eqm.draw()

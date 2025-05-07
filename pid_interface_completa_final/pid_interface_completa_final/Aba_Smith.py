@@ -6,7 +6,7 @@ import numpy as np
 import control as ctrl
 
 class AbaSmith(tk.Frame):
-    def __init__(self, master, k, tau, theta, tempo, entrada, saida):
+    def __init__(self, master, k, tau, theta, tempo, entrada, saida, label, unidade):
         super().__init__(master)
         self.k = k
         self.tau = tau
@@ -14,6 +14,8 @@ class AbaSmith(tk.Frame):
         self.tempo = tempo
         self.entrada = entrada
         self.saida = saida
+        self.label = label
+        self.unidade = unidade
 
         self.malha_var = tk.StringVar(value="Malha Fechada")
         self.pade_var = tk.StringVar(value="1")
@@ -27,7 +29,7 @@ class AbaSmith(tk.Frame):
 
         ttk.Label(painel, text="Ordem de Padé:", font=("Arial", 12)).grid(row=2, column=0, sticky="w")
         ttk.Combobox(painel, textvariable=self.pade_var,
-                     values=["1", "2", "3", "4", "5"], state="readonly", width=20).grid(row=3, column=0, pady=(0, 15))
+                     values=["1", "2", "3", "4", "5", "20"], state="readonly", width=20).grid(row=3, column=0, pady=(0, 15))
 
         ttk.Button(painel, text="Plotar Gráfico", command=self.plotar).grid(row=4, column=0, pady=10)
 
@@ -51,21 +53,22 @@ class AbaSmith(tk.Frame):
             tau = 1.5 * (t2 - t1)
             theta = t2 - tau
             k = (valor_final - self.saida[0]) / self.entrada.mean()
+            amplitude_degrau = self.entrada.mean()
 
             # Modelo base
             G_s = ctrl.tf([k], [tau, 1])
             num_pade, den_pade = ctrl.pade(theta, ordem)
-            atraso = ctrl.tf(num_pade, den_pade)
-            G_atrasado = ctrl.series(G_s, atraso)
+            Pade_approx = ctrl.tf(num_pade, den_pade)
 
-            # Ajuste da malha
+            G_atrasada = ctrl.series(Pade_approx, G_s)
+
             if tipo_malha == "Malha Fechada":
-                sistema = ctrl.feedback(G_atrasado, 1)
-            else:
-                sistema = G_atrasado
+                resposta_modelo = ctrl.feedback(G_atrasada, 1)
+            else:  # Malha Aberta
+                resposta_modelo = G_atrasada
 
-            # Simulação da resposta
-            t_sim, y_modelo = ctrl.step_response(sistema * self.entrada.mean(), T=self.tempo)
+            # Simulação com entrada escalada
+            t_sim, y_modelo = ctrl.step_response(resposta_modelo * amplitude_degrau, T=self.tempo)
 
             # EQM
             EQM = np.sqrt(np.mean((self.saida - y_modelo) ** 2))
@@ -77,7 +80,7 @@ class AbaSmith(tk.Frame):
 
             self.ax.set_title(f"Identificação via Método de Smith (Grupo 7 - {tipo_malha})")
             self.ax.set_xlabel("Tempo (s)")
-            self.ax.set_ylabel("Temperatura (°C)")
+            self.ax.set_ylabel(f"{self.label} ({self.unidade})")  # Dinâmico aqui
             self.ax.grid(True)
             self.ax.legend(loc="lower right")
 

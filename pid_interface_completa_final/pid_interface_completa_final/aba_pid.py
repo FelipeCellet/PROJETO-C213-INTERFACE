@@ -1,14 +1,21 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import numpy as np
+from tkinter import simpledialog
+
 from utils_pid import simular_pid
 
 class AbaPID(tk.Frame):
-    def __init__(self, master, k, tau, theta, tempo, entrada, saida):
+    def __init__(self, master, k, tau, theta, tempo, entrada, saida, historico, label, unidade):
         super().__init__(master)
-        self.configure(bg="white")  # fundo branco geral
+        self.historico = historico
+        self.label = label
+        self.unidade = unidade
+        ...
+
+        self.configure(bg="white")
 
         self.k = float(np.squeeze(k))
         self.tau = float(np.squeeze(tau))
@@ -21,7 +28,6 @@ class AbaPID(tk.Frame):
         self.pade_var = tk.StringVar(value="1")
         self.setpoint_var = tk.DoubleVar(value=100.0)
 
-        # Estilo para combobox sem seleção azul
         style = ttk.Style()
         style.theme_use("default")
         style.map("TCombobox",
@@ -44,14 +50,13 @@ class AbaPID(tk.Frame):
 
         ttk.Label(frame_controle, text="Ordem de Padé", font=("Arial", 12), background="white").grid(row=2, column=0, sticky="w")
         self.pade_cb = ttk.Combobox(frame_controle, textvariable=self.pade_var,
-                                    values=["1", "2", "3", "4", "5"], state="readonly", font=("Arial", 11))
+                                    values=["1", "2", "3", "4", "5","20"], state="readonly", font=("Arial", 11))
         self.pade_cb.grid(row=3, column=0, sticky="ew", pady=(0, 15))
 
         ttk.Label(frame_controle, text="Setpoint", font=("Arial", 12), background="white").grid(row=4, column=0, sticky="w")
         self.setpoint_entry = tk.Entry(frame_controle, textvariable=self.setpoint_var, font=("Arial", 12), width=10)
         self.setpoint_entry.grid(row=5, column=0, sticky="ew", pady=(0, 15))
 
-        # PID Parameters
         frame_pid = tk.LabelFrame(frame_controle, text="Parâmetros PID", font=("Arial", 11), bg="white", fg="black")
         frame_pid.grid(row=6, column=0, sticky="ew", pady=(0, 15))
         frame_pid.configure(highlightbackground="gray", highlightthickness=1)
@@ -59,7 +64,6 @@ class AbaPID(tk.Frame):
         self.ti_entry = self._criar_entrada(frame_pid, "Ti", 1)
         self.td_entry = self._criar_entrada(frame_pid, "Td", 2)
 
-        # System Parameters
         frame_param = tk.LabelFrame(frame_controle, text="Parâmetros do Sistema", font=("Arial", 11), bg="white", fg="black")
         frame_param.grid(row=7, column=0, sticky="ew", pady=(0, 15))
         frame_param.configure(highlightbackground="gray", highlightthickness=1)
@@ -70,7 +74,13 @@ class AbaPID(tk.Frame):
         ttk.Button(frame_controle, text="Aplicar Método", command=self.aplicar_metodo).grid(row=8, column=0, sticky="ew", pady=(5, 10))
         ttk.Button(frame_controle, text="Simular", command=self.simular).grid(row=9, column=0, sticky="ew")
 
-        # Plot Area
+        # Botões de exportação
+        ttk.Button(frame_controle, text="Exportar PNG", command=self.exportar_png).grid(row=10, column=0, sticky="ew", pady=(5, 5))
+        ttk.Button(frame_controle, text="Exportar PDF", command=self.exportar_pdf).grid(row=11, column=0, sticky="ew")
+
+        ttk.Button(frame_controle, text="Salvar Simulação", command=self.salvar_simulacao).grid(row=12, column=0, sticky="ew", pady=(5, 5))
+
+
         self.fig, self.ax = plt.subplots(figsize=(6, 4))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.get_tk_widget().grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
@@ -86,30 +96,51 @@ class AbaPID(tk.Frame):
         return entry
 
     def bloquear_campos(self, *args):
-        estado = "normal" if self.metodo_var.get() == "Manual" else "disabled"
+        metodo = self.metodo_var.get()
+
+        if metodo == "Manual":
+            senha = simpledialog.askstring("Autenticação", "Digite a senha de 6 dígitos para liberar o modo Manual:")
+            if senha != "123456":
+                messagebox.showwarning("Acesso Negado", "Senha incorreta. Voltando para 'Cohen-Coon'.")
+                self.metodo_var.set("Cohen-Coon")
+                metodo = "Cohen-Coon"
+
+        estado = "normal" if metodo == "Manual" else "disabled"
         for entry in [self.kp_entry, self.ti_entry, self.td_entry]:
             entry.config(state=estado)
 
     def aplicar_metodo(self):
         metodo = self.metodo_var.get()
-        if metodo == "Cohen-Coon":
-            Kp = (self.tau / (self.k * self.theta)) * ((16 * self.theta / self.tau + 3) / 12)
-            Ti = self.theta * ((32 + 6 * self.theta / self.tau) / (13 + 8 * self.theta / self.tau))
-            Td = (4 * self.theta) / (11 + 2 * self.theta / self.tau)
-        elif metodo == "Ziegler-Nichols":
-            Kp = 1.2 * self.tau / (self.k * self.theta)
-            Ti = 2 * self.theta
-            Td = self.theta / 2
-        else:
-            return
+        try:
+            if metodo == "Cohen-Coon":
+                # Kp conforme tabela
+                kp_num = (16 * self.tau + 3 * self.theta)
+                kp_den = 12 * self.tau
+                Kp = (self.tau / (self.k * self.theta)) * (kp_num / kp_den)
 
-        for val, entry in zip([Kp, Ti, Td], [self.kp_entry, self.ti_entry, self.td_entry]):
-            entry.config(state="normal")
-            entry.delete(0, tk.END)
-            entry.insert(0, f"{val:.4f}")
+                # Ti reescrita na forma exata solicitada
+                Ti = self.theta * ((32 + (6 * self.theta) / self.tau) / (13 + (8 * self.theta) / self.tau))
 
-        self.bloquear_campos()
-        messagebox.showinfo("Método Aplicado", f"Método: {metodo} | Ordem de Padé: {self.pade_var.get()}")
+                # Td permanece igual
+                Td = (4 * self.theta) / (11 + (2 * self.theta) / self.tau)
+
+            elif metodo == "Ziegler-Nichols":
+                Kp = (1.2 * self.tau) / (self.k * self.theta)
+                Ti = 2 * self.theta
+                Td = self.theta / 2
+            else:
+                return
+
+            # Preenche os campos da interface
+            for val, entry in zip([Kp, Ti, Td], [self.kp_entry, self.ti_entry, self.td_entry]):
+                entry.config(state="normal")  # libera temporariamente para inserir
+                entry.delete(0, tk.END)
+                entry.insert(0, f"{val:.4f}")
+
+            self.bloquear_campos()  # bloqueia novamente se necessário
+
+        except ZeroDivisionError:
+            messagebox.showerror("Erro", "θ (theta), τ (tau) e k não podem ser zero.")
 
     def simular(self):
         try:
@@ -137,18 +168,47 @@ class AbaPID(tk.Frame):
         y_offset = min(y) + (max(y) - min(y)) * 0.3
 
         self.ax.annotate(f"Pico: {ymax:.2f}\nOvershoot: {mp:.1f}%",
-                        xy=(tp, ymax),
-                        xytext=(x_offset, y_offset),
-                        fontsize=11,
-                        bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="purple", lw=1.5),
-                        )
+                         xy=(tp, ymax),
+                         xytext=(x_offset, y_offset),
+                         fontsize=11,
+                         bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="purple", lw=1.5))
 
         self.ax.axvline(tr, color="blue", linestyle="--", label=f"T subida: {tr:.2f}s")
         self.ax.axvline(ts, color="green", linestyle="--", label=f"T acomodação: {ts:.2f}s")
 
         self.ax.set_title("Resposta do Sistema com PID")
         self.ax.set_xlabel("Tempo (s)")
-        self.ax.set_ylabel("Saída")
+        self.ax.set_ylabel(f"{self.label} ({self.unidade})")
         self.ax.grid()
         self.ax.legend()
         self.canvas.draw()
+        self.ultima_simulacao = {
+            "tempo": t,
+            "saida": y,
+            "Kp": Kp,
+            "Ti": Ti,
+            "Td": Td,
+            "setpoint": setpoint,
+            "info": info
+        }
+
+
+    def exportar_png(self):
+        caminho = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG Files", "*.png")])
+        if caminho:
+            self.fig.savefig(caminho)
+            messagebox.showinfo("Exportação", f"Gráfico exportado como PNG em:\n{caminho}")
+
+    def exportar_pdf(self):
+        caminho = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")])
+        if caminho:
+            self.fig.savefig(caminho)
+            messagebox.showinfo("Exportação", f"Gráfico exportado como PDF em:\n{caminho}")
+
+    def salvar_simulacao(self):
+        if hasattr(self, 'ultima_simulacao'):
+            self.historico.append(self.ultima_simulacao)
+            messagebox.showinfo("Salvo", "Simulação salva no histórico com sucesso!")
+        else:
+            messagebox.showwarning("Aviso", "Nenhuma simulação realizada para salvar.")
+

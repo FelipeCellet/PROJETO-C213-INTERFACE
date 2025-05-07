@@ -15,9 +15,8 @@ class AbaIdentificacao(tk.Frame):
         elif vis:
             self.annotation.set_visible(False)
             self.canvas.draw_idle()
-    
 
-    def __init__(self, master, tempo, entrada, saida):
+    def __init__(self, master, tempo, entrada, saida, label, unidade):
         super().__init__(master)
 
         # Frame interno para centralizar
@@ -30,7 +29,7 @@ class AbaIdentificacao(tk.Frame):
         self.ax.plot(tempo, saida, label="Saída", color="red")
         self.ax.set_title("Identificação do Sistema")
         self.ax.set_xlabel("Tempo (s)")
-        self.ax.set_ylabel("Temperatura (°C)")
+        self.ax.set_ylabel(f"{label} ({unidade})")  # <-- Dinâmico!
         self.ax.legend()
         self.ax.grid(True)
 
@@ -56,7 +55,7 @@ class AbaIdentificacao(tk.Frame):
         frame_central.grid_rowconfigure(0, weight=1)
         frame_central.grid_columnconfigure(0, weight=1)
 
-                # Anotação flutuante
+        # Anotação flutuante
         self.annotation = self.ax.annotate(
             "", xy=(0, 0), xytext=(15, 15), textcoords="offset points",
             bbox=dict(boxstyle="round", fc="w"),
@@ -66,4 +65,3 @@ class AbaIdentificacao(tk.Frame):
 
         # Conectar evento de movimento do mouse
         self.canvas.mpl_connect("motion_notify_event", self._on_hover)
-
