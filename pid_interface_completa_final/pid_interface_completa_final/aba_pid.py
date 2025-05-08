@@ -18,9 +18,9 @@ class AbaPID(tk.Frame):
 
         self.configure(bg="white")
 
-        self.k = float(np.squeeze(k))
-        self.tau = float(np.squeeze(tau))
-        self.theta = float(np.squeeze(theta))
+        self.k = float(k)
+        self.tau = float(tau)
+        self.theta = float(theta)
         self.tempo = tempo
         self.entrada = entrada
         self.saida = saida
