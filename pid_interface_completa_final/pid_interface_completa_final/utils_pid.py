@@ -2,30 +2,25 @@ import numpy as np
 import control as ctrl
 
 def simular_pid(Kp, Ti, Td, k, tau, theta, tempo, ordem_pade, setpoint=1.0):
-    # Validação básica dos parâmetros
     if Kp <= 0 or Ti <= 0 or Td < 0 or k == 0 or tau == 0:
         raise ValueError("Parâmetros inválidos: Kp, Ti, Td, k e tau devem ser positivos.")
 
-    # Criação do controlador PID
     PID = ctrl.tf([Kp * Td, Kp, Kp / Ti], [1, 0])
-
-    # Aproximação de Padé para o atraso
     num_pade, den_pade = ctrl.pade(theta, ordem_pade)
     atraso = ctrl.tf(num_pade, den_pade)
-
-    # Modelo da planta com atraso
     G_open = ctrl.series(ctrl.tf([k], [tau, 1]), atraso)
-
-    # Sistema em malha fechada com PID
     sistema_pid = ctrl.feedback(PID * G_open)
 
-    # Simulação da resposta ao degrau
     try:
         t_pid, y_pid = ctrl.step_response(sistema_pid, T=tempo)
-        y_pid *= setpoint  # Escalando pela referência desejada
+        y_pid *= setpoint
 
-        # Cálculo manual das métricas
-        y_final = np.mean(y_pid[-int(0.05 * len(y_pid)):])  # média dos últimos 5%
+
+        info_raw = ctrl.step_info(sistema_pid, T=tempo)
+
+        rise_time_corrigido = max(0, info_raw["RiseTime"] - theta)
+
+        y_final = np.mean(y_pid[-int(0.05 * len(y_pid)):])
         y_max = np.max(y_pid)
         overshoot = ((y_max - y_final) / y_final) * 100 if y_final != 0 else 0
 
@@ -33,19 +28,7 @@ def simular_pid(Kp, Ti, Td, k, tau, theta, tempo, ordem_pade, setpoint=1.0):
         tp_index = np.argmax(y_pid)
         tp = t_pid[tp_index]
 
-        # Tempo de subida (10% a 90% do valor final)
-        tr = None
-        t10 = t90 = None
-        for i, y in enumerate(y_pid):
-            if t10 is None and y >= 0.1 * y_final:
-                t10 = t_pid[i]
-            if t90 is None and y >= 0.9 * y_final:
-                t90 = t_pid[i]
-                break
-        if t10 is not None and t90 is not None:
-            tr = t90 - t10
-
-        # Tempo de acomodação (±2%)
+        # Tempo de acomodação (±2%) reusado do cálculo manual
         tol = 0.02
         upper = y_final * (1 + tol)
         lower = y_final * (1 - tol)
@@ -60,7 +43,7 @@ def simular_pid(Kp, Ti, Td, k, tau, theta, tempo, ordem_pade, setpoint=1.0):
         info = {
             "PeakTime": tp,
             "Overshoot": overshoot,
-            "RiseTime": tr if tr else 0,
+            "RiseTime": rise_time_corrigido,
             "SettlingTime": ts
         }
 

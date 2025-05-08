@@ -45,8 +45,10 @@ class AbaEQM(tk.Frame):
         y_final = y_real[-1]
 
         if self.metodo_var.get() == "Smith":
+            #pontos da curva
             y1 = y0 + 0.283 * (y_final - y0)
             y2 = y0 + 0.632 * (y_final - y0)
+            #instantes de tempo que se atinge os pontos
             t1 = t[np.argmax(y_real >= y1)]
             t2 = t[np.argmax(y_real >= y2)]
             tau = 1.5 * (t2 - t1)
@@ -59,12 +61,16 @@ class AbaEQM(tk.Frame):
             tau = 0.67 * (t2 - t1)
             theta = 1.3 * t1 - 0.29 * t2
 
+        #Função de tranferencia
         G = ctrl.tf([self.k], [tau, 1])
+        #Atraso
         num_pade, den_pade = ctrl.pade(theta, 1)
         atraso = ctrl.tf(num_pade, den_pade)
+        #Modelo completo com atraso
         modelo = ctrl.series(G, atraso)
+        #simulando resposta ao degrau
         t_sim, y_sim = ctrl.step_response(modelo * self.amplitude, T=t)
-
+        #EQM - comparando a saida real com a simulada
         eqm = np.sqrt(np.mean((y_real - y_sim) ** 2))
 
         self.ax_eqm.clear()
