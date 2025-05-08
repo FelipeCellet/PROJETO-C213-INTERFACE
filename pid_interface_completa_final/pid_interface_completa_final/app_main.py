@@ -55,7 +55,8 @@ class AppPID(tk.Tk):
         abas.add(AbaIdentificacao(abas, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x), text="Identificação")
         abas.add(AbaPID(abas, self.k, self.tau, self.theta, tempo, entrada, saida, self.historico_simulacoes, label_y, unidade_y, label_x, unidade_x), text="Controle PID")
         abas.add(AbaEQM(abas, tempo, entrada, saida, self.k, label_y, unidade_y), text="EQM - Modelos")
-        abas.add(AbaSmith(abas, self.k, self.tau, self.theta, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x), text="Gráficos Smith")
+        abas.add(AbaSmith(abas, self.k, self.tau, self.theta, tempo, entrada, saida, label_y, unidade_y, label_x, unidade_x, self.historico_simulacoes), text="Gráficos Smith")
+
         abas.add(AbaHistorico(abas, self.historico_simulacoes), text="Histórico de Simulações")
 
 if __name__ == "__main__":
